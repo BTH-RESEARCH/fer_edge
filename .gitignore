@@ -1,0 +1,40 @@
+# môi trường ảo
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# mô hình và trọng số (tải từ GitHub Releases, không đưa vào git)
+*.ferpack
+*.onnx
+*.onnx.data
+*.pt
+*.pth
+packs/
+models/
+
+# kết quả chạy
+outputs/
+results/
+
+# dữ liệu thử
+data/
+samples/
+videos/
+*.mp4
+*.avi
+*.mov
+
+# hệ điều hành / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
