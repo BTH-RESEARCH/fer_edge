@@ -80,6 +80,24 @@ def system_info():
     return info
 
 
+def camera_info():
+    """Những nguồn camera có thể dùng (không mở camera, chỉ liệt kê)."""
+    out = {}
+    try:
+        from picamera2 import Picamera2
+        cams = Picamera2.global_camera_info()
+        out["picamera2"] = (f"{len(cams)} camera CSI: {[c.get('Model', '?') for c in cams]}" if cams
+                            else "đã cài nhưng không thấy camera CSI nào")
+    except ImportError:
+        out["picamera2"] = "chưa cài (Pi Camera Module sẽ không dùng được; webcam USB vẫn chạy)"
+    except Exception as e:
+        out["picamera2"] = f"lỗi: {type(e).__name__}: {e}"
+    if platform.system() == "Linux":
+        vids = sorted(Path("/dev").glob("video*"))
+        out["/dev/video*"] = ", ".join(p.name for p in vids) or "không có (chưa cắm webcam USB?)"
+    return out
+
+
 def is_pi():
     return "raspberry" in str(env_info().get("board", "")).lower()
 

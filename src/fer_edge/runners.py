@@ -206,25 +206,138 @@ def run_video(pipe, source, out_dir="outputs", smoothing=None, save_video=True, 
 
 
 # ----------------------------------------------------------------------------- webcam
-def open_camera(index, width, height):
-    backend = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY
-    cap = cv2.VideoCapture(index, backend)
-    if not cap.isOpened():
-        cap = cv2.VideoCapture(index)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-    return cap
+class Camera:
+    """Mở camera bằng picamera2 (Pi Camera Module, cáp CSI) hoặc OpenCV/V4L2 (webcam USB).
+
+    backend: "auto" (ưu tiên CSI nếu có) | "picamera2" | "usb".
+    Cả hai đường đều trả về khung hình BGR như OpenCV.
+    """
+
+    def __init__(self, index=0, width=1280, height=720, fps=30, backend="auto", swap_rb=False):
+        self.index, self.width, self.height, self.fps = int(index), int(width), int(height), float(fps)
+        self.swap_rb, self.picam, self.cap, self.errors = swap_rb, None, None, []
+        for b in self._order(backend):
+            if (b == "picamera2" and self._open_picamera2()) or (b == "usb" and self._open_cv()):
+                self.backend = b
+                break
+        else:
+            raise SystemExit(self._help())
+
+    # ---- chọn thứ tự thử
+    def _order(self, backend):
+        if backend in ("picamera2", "usb"):
+            return [backend]
+        if platform.system() != "Linux":
+            return ["usb"]
+        return ["picamera2", "usb"] if self._has_csi() else ["usb", "picamera2"]
+
+    @staticmethod
+    def _has_csi():
+        try:
+            from picamera2 import Picamera2
+            return bool(Picamera2.global_camera_info())
+        except Exception:
+            return False
+
+    # ---- mở
+    def _open_picamera2(self):
+        try:
+            from picamera2 import Picamera2
+            cams = Picamera2.global_camera_info()
+            if not cams:
+                self.errors.append("picamera2: không thấy camera CSI nào")
+                return False
+            picam = Picamera2(self.index if self.index < len(cams) else 0)
+            picam.configure(picam.create_video_configuration(
+                main={"size": (self.width, self.height), "format": "RGB888"},
+                controls={"FrameRate": self.fps}))
+            picam.start()
+            time.sleep(1.0)                       # chờ tự động phơi sáng và cân bằng trắng ổn định
+            frame = picam.capture_array()
+            if frame is None or frame.size == 0:
+                picam.stop()
+                self.errors.append("picamera2: mở được nhưng không đọc được khung hình")
+                return False
+            self.picam = picam
+            return True
+        except Exception as e:
+            self.errors.append(f"picamera2: {type(e).__name__}: {e}")
+            return False
+
+    def _open_cv(self):
+        try:
+            api = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_ANY
+            cap = cv2.VideoCapture(self.index, api)
+            if not cap.isOpened():
+                cap = cv2.VideoCapture(self.index)
+            if not cap.isOpened():
+                self.errors.append(f"opencv: không mở được thiết bị {self.index}")
+                return False
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                cap.release()
+                self.errors.append(f"opencv: mở được thiết bị {self.index} nhưng không đọc được khung hình")
+                return False
+            self.cap = cap
+            return True
+        except Exception as e:
+            self.errors.append(f"opencv: {type(e).__name__}: {e}")
+            return False
+
+    def _help(self):
+        lines = [f"Không mở được camera {self.index}. Đã thử:"] + [f"  - {e}" for e in self.errors]
+        if platform.system() == "Linux":
+            lines += ["Kiểm tra:",
+                      "  rpicam-hello --list-cameras     # camera CSI có được nhận không",
+                      "  ls /dev/video*                  # webcam USB có xuất hiện không",
+                      "  groups | grep video             # tài khoản có trong nhóm 'video' không",
+                      "Camera CSI cần picamera2 của hệ thống: tạo môi trường ảo bằng",
+                      "  python3 -m venv --system-site-packages .venv",
+                      "  (hoặc: sudo apt install -y python3-picamera2)",
+                      "Ép chọn nguồn: --camera picamera2 hoặc --camera usb. Thiết bị khác: --source 1"]
+        else:
+            lines.append("Thử --source 1, hoặc kiểm tra quyền truy cập camera của hệ điều hành.")
+        return "\n".join(lines)
+
+    # ---- dùng
+    def read(self):
+        if self.picam is not None:
+            f = self.picam.capture_array()
+            if f is None or f.size == 0:
+                return False, None
+            if f.ndim == 3 and f.shape[2] == 4:          # XRGB8888 -> bỏ kênh alpha
+                f = f[:, :, :3]
+            if self.swap_rb:
+                f = f[:, :, ::-1]
+            return True, np.ascontiguousarray(f)
+        return self.cap.read()
+
+    def release(self):
+        if self.picam is not None:
+            try:
+                self.picam.stop()
+                self.picam.close()
+            except Exception:
+                pass
+        if self.cap is not None:
+            self.cap.release()
+
+
+def open_camera(index=0, width=1280, height=720, fps=30, backend="auto", swap_rb=False):
+    return Camera(index, width, height, fps, backend, swap_rb)
 
 
 def run_webcam(pipe, cam=0, out_dir="outputs", smoothing=None, width=1280, height=720, seconds=0,
-               record=False, show=True, name=None):
-    cap = open_camera(int(cam), width, height)
-    if not cap.isOpened():
-        raise SystemExit(f"Không mở được camera {cam}. Thử --source 1, hoặc kiểm tra quyền truy cập camera.")
+               record=False, show=True, name=None, camera="auto", swap_rb=False, fps=30):
+    cap = Camera(cam, width, height, fps, camera, swap_rb)
     ok, img = cap.read()
     if not ok:
+        cap.release()
         raise SystemExit("Camera mở được nhưng không đọc được khung hình.")
     H, W = img.shape[:2]
+    print(f"[fer-edge] camera: {cap.backend} | {W}x{H}")
     run = new_run_dir(out_dir, "webcam", name)
     (run / "snapshots").mkdir()
     sm = smoothing or TemporalSmoother(n_classes=len(pipe.classes))
@@ -287,8 +400,9 @@ def run_webcam(pipe, cam=0, out_dir="outputs", smoothing=None, width=1280, heigh
         cv2.destroyAllWindows()
     pd.DataFrame(frames).to_csv(run / "frames.csv", index=False)
     pd.DataFrame(faces).to_csv(run / "faces.csv", index=False)
-    write_json(run / "run.json", run_meta("webcam", f"camera {cam}", pipe, sm, {
-        "n_items": i, "wall_s": round(wall, 2), "resolution": f"{W}x{H}", "duration_s": round(wall, 2)}))
+    write_json(run / "run.json", run_meta("webcam", f"camera {cam} ({cap.backend})", pipe, sm, {
+        "n_items": i, "wall_s": round(wall, 2), "resolution": f"{W}x{H}", "duration_s": round(wall, 2),
+        "camera_backend": cap.backend}))
     return run
 
 

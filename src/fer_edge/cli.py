@@ -15,9 +15,12 @@ def _utf8():
 # ----------------------------------------------------------------------------- lệnh
 def cmd_doctor(a):
     from .registry import cache_dir, cached_models, load_registry, local_models_dir
-    from .sysinfo import system_info
+    from .sysinfo import camera_info, system_info
     print("Môi trường")
     for k, v in system_info().items():
+        print(f"  {k:16s} {v}")
+    print("\nCamera")
+    for k, v in camera_info().items():
         print(f"  {k:16s} {v}")
     print(f"\nThư mục cache   {cache_dir()}")
     print(f"Thư mục mô hình {local_models_dir()}")
@@ -88,7 +91,8 @@ def cmd_predict(a):
     elif kind == "video":
         kw.update(save_video=not a.no_save_video, max_frames=a.max_frames, show=a.show)
     else:
-        kw.update(width=a.width, height=a.height, seconds=a.seconds, record=a.record, show=not a.no_show)
+        kw.update(width=a.width, height=a.height, seconds=a.seconds, record=a.record, show=not a.no_show,
+                  camera=a.camera, swap_rb=a.swap_rb, fps=a.cam_fps)
     run = predict(a.source, **kw)
     print(f"\nKết quả: {run}")
     if not a.no_report:
@@ -189,6 +193,10 @@ def build_parser():
     p.add_argument("--no-save-video", action="store_true", help="[video]")
     p.add_argument("--show", action="store_true", help="[video] hiện cửa sổ khi đang xử lý")
     p.add_argument("--no-show", action="store_true", help="[webcam] không hiện cửa sổ (chạy qua SSH)")
+    p.add_argument("--camera", default="auto", choices=["auto", "picamera2", "usb"],
+                   help="[webcam] nguồn camera: auto (ưu tiên Pi Camera CSI nếu có) | picamera2 | usb")
+    p.add_argument("--swap-rb", action="store_true", help="[webcam] đảo kênh màu nếu ảnh bị sai màu")
+    p.add_argument("--cam-fps", type=int, default=30, help="[webcam] FPS yêu cầu từ camera")
     p.add_argument("--width", type=int, default=1280, help="[webcam]")
     p.add_argument("--height", type=int, default=720, help="[webcam]")
     p.add_argument("--seconds", type=float, default=0, help="[webcam] tự dừng sau N giây")

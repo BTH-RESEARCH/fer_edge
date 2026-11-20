@@ -26,11 +26,14 @@ fer-edge doctor
 ### Raspberry Pi 5 / Linux / macOS
 
 ```bash
-python3 -m venv --system-site-packages .venv     # --system-site-packages để thấy picamera2 của hệ thống
+sudo apt install -y python3-picamera2            # chỉ cần nếu dùng Pi Camera Module (cáp CSI)
+python3 -m venv --system-site-packages .venv     # --system-site-packages để venv thấy picamera2
 source .venv/bin/activate
 pip install "git+https://github.com/BTH-RESEARCH/fer-edge.git"
-fer-edge doctor
+fer-edge doctor                                  # phần "Camera" cho biết nguồn nào đang dùng được
 ```
+
+Webcam USB thì không cần `python3-picamera2` và cũng không cần `--system-site-packages`.
 
 ### Cài từ mã nguồn (để sửa code)
 
@@ -54,12 +57,12 @@ fer-edge download resnet18 apvit     # tải về máy
 
 Mô hình được lưu ở `~/.cache/fer-edge/packs/` và dùng lại cho mọi lần chạy sau. Lệnh `predict` / `bench` cũng tự tải nếu chưa có.
 
-| Tên | Mô hình | Ảnh vào | Ghi chú |
-|---|---|---|---|
-| `resnet18-ferplus-fp32` (tắt: `resnet18`) | ResNet-18 | 224 | nhanh |
-| `resnet18-ferplus-int8d` / `-int8s` | ResNet-18 | 224 | lượng tử hóa INT8 (động / tĩnh) |
-| `apvit-ferplus-fp32` (tắt: `apvit`) | APViT | 112 | chính xác hơn, chậm hơn |
-| `apvit-ferplus-int8d` / `-int8s` | APViT | 112 | lượng tử hóa INT8 |
+| Tên                                       | Mô hình   | Ảnh vào | Ghi chú                         |
+| ----------------------------------------- | --------- | ------- | ------------------------------- |
+| `resnet18-ferplus-fp32` (tắt: `resnet18`) | ResNet-18 | 224     | nhanh                           |
+| `resnet18-ferplus-int8d` / `-int8s`       | ResNet-18 | 224     | lượng tử hóa INT8 (động / tĩnh) |
+| `apvit-ferplus-fp32` (tắt: `apvit`)       | APViT     | 112     | chính xác hơn, chậm hơn         |
+| `apvit-ferplus-int8d` / `-int8s`          | APViT     | 112     | lượng tử hóa INT8               |
 
 Có file `.ferpack` sẵn trên máy: đặt vào thư mục `models/` cạnh nơi chạy lệnh, hoặc chỉ đường dẫn thẳng:
 
@@ -79,6 +82,14 @@ fer-edge predict --source 0
 
 # webcam, tự dừng sau 60 giây, có ghi video
 fer-edge predict --source 0 --seconds 60 --record
+
+# Raspberry Pi: tự nhận Pi Camera Module (CSI) nếu có, không thì dùng webcam USB.
+# Ép chọn khi máy có cả hai:
+fer-edge predict --source 0 --camera picamera2
+fer-edge predict --source 0 --camera usb
+
+# chạy qua SSH (không có màn hình): bỏ cửa sổ xem trực tiếp
+fer-edge predict --source 0 --seconds 60 --record --no-show
 
 # một ảnh
 fer-edge predict --source anh.jpg
@@ -105,18 +116,21 @@ Nếu thư mục con mang tên lớp (`neutral`, `happy`, `sad`, `angry`, `supri
 
 ### Tùy chọn hay dùng
 
-| Tùy chọn | Mặc định | Ý nghĩa |
-|---|---|---|
-| `--model` | `resnet18` | tên mô hình hoặc đường dẫn `.ferpack` |
-| `--detector` | `yunet` | `yunet` · `yolo` (cần `pip install "fer-edge[yolo]"`) · `none` |
-| `--out-dir` | `outputs` | nơi lưu kết quả |
-| `--name` | – | thêm tên vào thư mục kết quả |
-| `--threads` | tự động | số luồng CPU |
-| `--margin` | `0.15` | nới khung mặt mỗi phía |
-| `--smoothing` | `ema` | làm mượt nhãn theo thời gian: `ema` · `majority` · `none` |
-| `--seconds` | `0` | [webcam] tự dừng sau N giây |
-| `--max-frames` | `0` | [video] chỉ xử lý N khung đầu |
-| `--no-report` | – | không tạo báo cáo |
+| Tùy chọn       | Mặc định   | Ý nghĩa                                                        |
+| -------------- | ---------- | -------------------------------------------------------------- |
+| `--model`      | `resnet18` | tên mô hình hoặc đường dẫn `.ferpack`                          |
+| `--detector`   | `yunet`    | `yunet` · `yolo` (cần `pip install "fer-edge[yolo]"`) · `none` |
+| `--out-dir`    | `outputs`  | nơi lưu kết quả                                                |
+| `--name`       | –          | thêm tên vào thư mục kết quả                                   |
+| `--threads`    | tự động    | số luồng CPU                                                   |
+| `--margin`     | `0.15`     | nới khung mặt mỗi phía                                         |
+| `--smoothing`  | `ema`      | làm mượt nhãn theo thời gian: `ema` · `majority` · `none`      |
+| `--seconds`    | `0`        | [webcam] tự dừng sau N giây                                    |
+| `--camera`     | `auto`     | [webcam] `auto` · `picamera2` (Pi Camera CSI) · `usb`          |
+| `--cam-fps`    | `30`       | [webcam] FPS yêu cầu từ camera                                 |
+| `--no-show`    | –          | [webcam] không mở cửa sổ (chạy qua SSH)                        |
+| `--max-frames` | `0`        | [video] chỉ xử lý N khung đầu                                  |
+| `--no-report`  | –          | không tạo báo cáo                                              |
 
 ---
 
@@ -206,8 +220,8 @@ run_dir = predict("video.mp4", model="apvit")     # trả về thư mục kết 
 
 ## 7. Tạo mô hình mới (chỉ khi huấn luyện lại)
 
-1. Chạy notebook trong `kaggle/export/` trên Kaggle (xem `kaggle/README.md`). Kết quả là các file `.ferpack` ở tab *Output*.
-2. Tải các file đó lên **GitHub Releases** của repo này (*Releases → Draft a new release → kéo thả file*).
+1. Chạy notebook trong `kaggle/export/` trên Kaggle (xem `kaggle/README.md`). Kết quả là các file `.ferpack` ở tab _Output_.
+2. Tải các file đó lên **GitHub Releases** của repo này (_Releases → Draft a new release → kéo thả file_).
 3. Cập nhật `src/fer_edge/models.json`: dán đoạn JSON mà notebook in ra, thay `<URL release>` bằng link thật.
 
 Nếu đã có sẵn thư mục export kiểu cũ (`meta.json` + `model_*.onnx`), đóng gói bằng:
@@ -220,13 +234,15 @@ fer-edge pack duong/dan/export --out packs --update-registry
 
 ## Khắc phục sự cố
 
-| Hiện tượng | Cách xử lý |
-|---|---|
-| `fer-edge: command not found` | Chưa kích hoạt môi trường ảo. Hoặc dùng `python -m fer_edge` thay cho `fer-edge`. |
-| Tải mô hình lỗi | Tải tay file `.ferpack` theo link trong `fer-edge models`, đặt vào `~/.cache/fer-edge/packs/`. |
-| `Không mở được camera 0` | Thử `--source 1`. Trên Windows kiểm tra quyền truy cập camera. |
-| Webcam chạy chậm | Dùng `--model resnet18-ferplus-int8s`, hoặc giảm `--width 640 --height 480`. |
-| Không có cửa sổ hiện lên (chạy qua SSH) | Thêm `--no-show`, hoặc chạy trên video đã quay sẵn. |
-| Nhãn nhảy liên tục | Tăng độ mượt: `--smoothing ema --alpha 0.15`. |
-| Nhãn hay sai với ảnh webcam | Chỉnh `--margin 0.25`, hoặc thêm `--align`. |
-| Muốn xóa toàn bộ mô hình đã tải | Xóa thư mục `~/.cache/fer-edge/`. |
+| Hiện tượng                              | Cách xử lý                                                                                                                                                                                                |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fer-edge: command not found`           | Chưa kích hoạt môi trường ảo. Hoặc dùng `python -m fer_edge` thay cho `fer-edge`.                                                                                                                         |
+| Tải mô hình lỗi                         | Tải tay file `.ferpack` theo link trong `fer-edge models`, đặt vào `~/.cache/fer-edge/packs/`.                                                                                                            |
+| `Không mở được camera 0`                | Thông báo lỗi liệt kê những nguồn đã thử và lệnh kiểm tra. Thử `--source 1`, hoặc ép `--camera usb` / `--camera picamera2`.                                                                               |
+| Pi Camera Module không nhận             | `fer-edge doctor` xem dòng `picamera2`. Nếu ghi "chưa cài": `sudo apt install -y python3-picamera2` rồi tạo lại venv với `--system-site-packages`. Kiểm tra phần cứng bằng `rpicam-hello --list-cameras`. |
+| Ảnh webcam bị sai màu (da xanh/tím)     | Thêm `--swap-rb`.                                                                                                                                                                                         |
+| Webcam chạy chậm                        | Dùng `--model resnet18-ferplus-int8s`, hoặc giảm `--width 640 --height 480`.                                                                                                                              |
+| Không có cửa sổ hiện lên (chạy qua SSH) | Thêm `--no-show`, hoặc chạy trên video đã quay sẵn.                                                                                                                                                       |
+| Nhãn nhảy liên tục                      | Tăng độ mượt: `--smoothing ema --alpha 0.15`.                                                                                                                                                             |
+| Nhãn hay sai với ảnh webcam             | Chỉnh `--margin 0.25`, hoặc thêm `--align`.                                                                                                                                                               |
+| Muốn xóa toàn bộ mô hình đã tải         | Xóa thư mục `~/.cache/fer-edge/`.                                                                                                                                                                         |

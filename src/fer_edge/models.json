@@ -1,41 +1,41 @@
 {
   "schema": 1,
   "_note": "Sau khi tải các file .ferpack lên GitHub Releases, chạy: fer-edge pack <thư mục export> --base-url <URL release> --update-registry để điền url và sha256 tự động.",
-  "release_base_url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0",
+  "release_base_url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0",
   "aliases": {
     "resnet18": "resnet18-ferplus-fp32",
     "apvit": "apvit-ferplus-fp32"
   },
   "models": {
     "resnet18-ferplus-fp32": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/resnet18-ferplus-fp32.ferpack",
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/resnet18-ferplus-fp32.ferpack",
       "sha256": "d9f4319d88c3917af0f8510fd6d4ac6ccafbf5af8b37a3a92e16564c056090e2",
       "size_mb": 42.6
     },
     "resnet18-ferplus-int8d": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/resnet18-ferplus-int8d.ferpack",
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/resnet18-ferplus-int8d.ferpack",
       "sha256": "2c4a59f0f0a9ebf84b7625c73487bb88b0ecb3a0315b7932f26dac343c2b92d9",
       "size_mb": 7.2
     },
     "resnet18-ferplus-int8s": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/resnet18-ferplus-int8s.ferpack",
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/resnet18-ferplus-int8s.ferpack",
       "sha256": "56282129c3fdca03d34b6ae82415be87d1c0225f20254a3ef81eab563fdccf87",
       "size_mb": 10.2
     },
     "apvit-ferplus-fp32": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/apvit-ferplus-fp32.ferpack",
-      "sha256": null,
-      "size_mb": null
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/apvit-ferplus-fp32.ferpack",
+      "sha256": "25b5adeb9bc90a6dda539cb82b480d2a3530c9cefab37d9d2328839779790020",
+      "size_mb": 243.5
     },
     "apvit-ferplus-int8d": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/apvit-ferplus-int8d.ferpack",
-      "sha256": null,
-      "size_mb": null
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/apvit-ferplus-int8d.ferpack",
+      "sha256": "44e5f3c267b5f7197db63f6d7248342628921202def155555f4d14e823969053",
+      "size_mb": 44.5
     },
     "apvit-ferplus-int8s": {
-      "url": "https://github.com/BTH-RESEARCH/fer-edge/releases/download/v0.1.0/apvit-ferplus-int8s.ferpack",
-      "sha256": null,
-      "size_mb": null
+      "url": "https://github.com/BTH-RESEARCH/fer_edge/releases/download/v0.1.0/apvit-ferplus-int8s.ferpack",
+      "sha256": "e3be2a53ba030a8c569f76c927778ff4b10e6b968ddb97812b58e864a0df27fa",
+      "size_mb": 59.4
     }
   }
 }
